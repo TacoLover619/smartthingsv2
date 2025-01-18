@@ -10,6 +10,9 @@ from homeassistant.helpers.entity import Entity
 
 from .const import DOMAIN, SIGNAL_SMARTTHINGS_UPDATE
 
+import logging
+
+_LOGGER = logging.getLogger(__name__)
 
 class SmartThingsEntity(Entity):
     """Defines a SmartThings entity."""
@@ -31,6 +34,7 @@ class SmartThingsEntity(Entity):
             hw_version=device.status.ocf_hardware_version,
             sw_version=device.status.ocf_firmware_version,
         )
+        _LOGGER.debug("Initialized entity for device: %s", device.label)
 
     async def async_added_to_hass(self):
         """Device added to hass."""
@@ -38,6 +42,9 @@ class SmartThingsEntity(Entity):
         async def async_update_state(devices):
             """Update device state."""
             if self._device.device_id in devices:
+                _LOGGER.debug(
+                    "State update triggered for device: %s", self._device.label
+                )
                 await self.async_update_ha_state(True)
 
         self._dispatcher_remove = async_dispatcher_connect(
@@ -48,3 +55,20 @@ class SmartThingsEntity(Entity):
         """Disconnect the device when removed."""
         if self._dispatcher_remove:
             self._dispatcher_remove()
+
+    async def async_update(self) -> None:
+        """Update the device attributes."""
+        try:
+            _LOGGER.debug(
+                "Fetching latest status for device: %s", self._device.label
+            )
+            await self._device.status.refresh()
+            _LOGGER.debug(
+                "Updated attributes for device '%s': %s",
+                self._device.label,
+                self._device.status.attributes,
+            )
+        except Exception as e:
+            _LOGGER.error(
+                "Error updating device '%s': %s", self._device.label, e
+            )

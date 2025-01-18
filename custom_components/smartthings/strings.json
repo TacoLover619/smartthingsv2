@@ -14,7 +14,7 @@
       },
       "select_location": {
         "title": "Select Location",
-        "description": "Please select the SmartThings Location you wish to add to Home Assistant. We will then open a new window and ask you to login and authorize installation of the Home Assistant integration into the selected location.",
+        "description": "Please select the SmartThings Location you wish to add to Home Assistant. We will then open a new window and ask you to log in and authorize installation of the Home Assistant integration into the selected location.",
         "data": { "location_id": "[%key:common::config_flow::data::location%]" }
       },
       "authorize": { "title": "Authorize Home Assistant" }
@@ -24,7 +24,7 @@
       "no_available_locations": "There are no available SmartThings Locations to set up in Home Assistant."
     },
     "error": {
-      "token_invalid_format": "The token must be in the UID/GUID format",
+      "token_invalid_format": "The token must be in the UID/GUID format.",
       "token_unauthorized": "The token is invalid or no longer authorized.",
       "token_forbidden": "The token does not have the required OAuth scopes.",
       "app_setup_error": "Unable to set up the SmartApp. Please try again.",

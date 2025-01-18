@@ -15,6 +15,10 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DATA_BROKERS, DOMAIN
 from .entity import SmartThingsEntity
 
+import logging
+
+_LOGGER = logging.getLogger(__name__)
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -28,11 +32,12 @@ async def async_setup_entry(
         for device in broker.devices.values()
         if broker.any_assigned(device.device_id, "switch")
     )
+    _LOGGER.debug("Setup switches for SmartThings integration")
 
 
 def get_capabilities(capabilities: Sequence[str]) -> Sequence[str] | None:
     """Return all capabilities supported if minimum required are present."""
-    # Must be able to be turned on/off.
+    # Must be able to be turned on/off
     if Capability.switch in capabilities:
         return [Capability.switch, Capability.energy_meter, Capability.power_meter]
     return None
@@ -41,21 +46,26 @@ def get_capabilities(capabilities: Sequence[str]) -> Sequence[str] | None:
 class SmartThingsSwitch(SmartThingsEntity, SwitchEntity):
     """Define a SmartThings switch."""
 
-    async def async_turn_off(self, **kwargs: Any) -> None:
-        """Turn the switch off."""
-        await self._device.switch_off(set_status=True)
-        # State is set optimistically in the command above, therefore update
-        # the entity state ahead of receiving the confirming push updates
-        self.async_write_ha_state()
+    def __init__(self, device):
+        """Initialize the switch."""
+        super().__init__(device)
+        _LOGGER.debug("Initialized switch device: %s", device.label)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the switch on."""
+        _LOGGER.debug("Turning on switch: %s", self._device.label)
         await self._device.switch_on(set_status=True)
-        # State is set optimistically in the command above, therefore update
-        # the entity state ahead of receiving the confirming push updates
+        self.async_write_ha_state()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Turn the switch off."""
+        _LOGGER.debug("Turning off switch: %s", self._device.label)
+        await self._device.switch_off(set_status=True)
         self.async_write_ha_state()
 
     @property
     def is_on(self) -> bool:
-        """Return true if light is on."""
-        return self._device.status.switch
+        """Return true if the switch is on."""
+        state = self._device.status.switch
+        _LOGGER.debug("Switch %s is_on state: %s", self._device.label, state)
+        return state

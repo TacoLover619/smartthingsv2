@@ -18,6 +18,10 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DATA_BROKERS, DOMAIN
 from .entity import SmartThingsEntity
 
+import logging
+
+_LOGGER = logging.getLogger(__name__)
+
 CAPABILITY_TO_ATTRIB = {
     Capability.acceleration_sensor: Attribute.acceleration,
     Capability.contact_sensor: Attribute.contact,
@@ -40,7 +44,7 @@ ATTRIB_TO_CLASS = {
     Attribute.valve: BinarySensorDeviceClass.OPENING,
     Attribute.water: BinarySensorDeviceClass.MOISTURE,
 }
-ATTRIB_TO_ENTTIY_CATEGORY = {
+ATTRIB_TO_ENTITY_CATEGORY = {
     Attribute.tamper: EntityCategory.DIAGNOSTIC,
 }
 
@@ -57,6 +61,7 @@ async def async_setup_entry(
         for capability in broker.get_assigned(device.device_id, "binary_sensor"):
             attrib = CAPABILITY_TO_ATTRIB[capability]
             sensors.append(SmartThingsBinarySensor(device, attrib))
+            _LOGGER.debug("Added binary sensor: %s with attribute: %s", device.label, attrib)
     async_add_entities(sensors)
 
 
@@ -77,9 +82,19 @@ class SmartThingsBinarySensor(SmartThingsEntity, BinarySensorEntity):
         self._attr_name = f"{device.label} {attribute}"
         self._attr_unique_id = f"{device.device_id}.{attribute}"
         self._attr_device_class = ATTRIB_TO_CLASS[attribute]
-        self._attr_entity_category = ATTRIB_TO_ENTTIY_CATEGORY.get(attribute)
+        self._attr_entity_category = ATTRIB_TO_ENTITY_CATEGORY.get(attribute)
+        _LOGGER.debug(
+            "Initialized binary sensor: %s with attribute: %s", device.label, attribute
+        )
 
     @property
     def is_on(self):
         """Return true if the binary sensor is on."""
-        return self._device.status.is_on(self._attribute)
+        state = self._device.status.is_on(self._attribute)
+        _LOGGER.debug(
+            "Binary sensor state for %s (%s): %s",
+            self._attr_name,
+            self._attribute,
+            state,
+        )
+        return state

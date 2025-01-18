@@ -15,6 +15,10 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DATA_BROKERS, DOMAIN
 from .entity import SmartThingsEntity
 
+import logging
+
+_LOGGER = logging.getLogger(__name__)
+
 ST_STATE_LOCKED = "locked"
 ST_LOCK_ATTR_MAP = {
     "codeId": "code_id",
@@ -38,32 +42,40 @@ async def async_setup_entry(
         for device in broker.devices.values()
         if broker.any_assigned(device.device_id, "lock")
     )
+    _LOGGER.debug("Setup locks for SmartThings integration")
 
 
 def get_capabilities(capabilities: Sequence[str]) -> Sequence[str] | None:
     """Return all capabilities supported if minimum required are present."""
-    if Capability.lock in capabilities:
-        return [Capability.lock]
-    return None
+    return [Capability.lock] if Capability.lock in capabilities else None
 
 
 class SmartThingsLock(SmartThingsEntity, LockEntity):
     """Define a SmartThings lock."""
 
+    def __init__(self, device):
+        """Initialize the lock."""
+        super().__init__(device)
+        _LOGGER.debug("Initialized lock device: %s", device.label)
+
     async def async_lock(self, **kwargs: Any) -> None:
         """Lock the device."""
+        _LOGGER.debug("Locking device: %s", self._device.label)
         await self._device.lock(set_status=True)
         self.async_write_ha_state()
 
     async def async_unlock(self, **kwargs: Any) -> None:
         """Unlock the device."""
+        _LOGGER.debug("Unlocking device: %s", self._device.label)
         await self._device.unlock(set_status=True)
         self.async_write_ha_state()
 
     @property
     def is_locked(self) -> bool:
-        """Return true if lock is locked."""
-        return self._device.status.lock == ST_STATE_LOCKED
+        """Return true if the lock is locked."""
+        state = self._device.status.lock == ST_STATE_LOCKED
+        _LOGGER.debug("Lock state for device %s: %s", self._device.label, state)
+        return state
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -76,4 +88,7 @@ class SmartThingsLock(SmartThingsEntity, LockEntity):
             for st_attr, ha_attr in ST_LOCK_ATTR_MAP.items():
                 if (data_val := status.data.get(st_attr)) is not None:
                     state_attrs[ha_attr] = data_val
+        _LOGGER.debug(
+            "Extra state attributes for lock %s: %s", self._device.label, state_attrs
+        )
         return state_attrs
